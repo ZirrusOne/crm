@@ -2,7 +2,14 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Uncontacted Leads"] = {
-	"filters": [
-
+	"filters":[
+		{
+			"fieldname": "user",
+			"label": "Assigned To",
+			"fieldtype": "Link",
+			"options": "User",
+			"default": frappe.session.user,
+			"reqd": 1
+		}
 	]
 };
