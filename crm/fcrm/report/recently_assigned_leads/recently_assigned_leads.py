@@ -15,7 +15,7 @@ def get_columns():
     return [
         {"fieldname": "lead_name", "label": _("Lead Name"), "fieldtype": "Link","options": "Lead", "width": 220},
         {"fieldname": "organization", "label": _("Organization"), "fieldtype": "Data", "width": 200},
-        {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "status", "label": _("Status"), "fieldtype": "Link","options": "CRM Lead Status", "width": 200},
         {"fieldname": "email_id", "label": _("Email Id"), "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to", "label": _("Assigned To"), "fieldtype": "Link", "options": "User", "width": 200},
         {"fieldname": "time_assigned", "label": _("Time Assigned"), "fieldtype": "Data", "width": 200}
@@ -26,14 +26,13 @@ def get_data(filters):
     conditions = get_filter_conditions(filters)
 
     #fetch lead data order by creation date
-    lead_details = frappe.db.sql(f"""select  L.name as lead_name, L.company_name as organization, 
-                                    L.status as status, L.email_id as email_id, 
-                                    (select assigned_by from `tabToDo` where reference_type="Lead" 
-                                    and reference_name = L.name) as assigned_to, L.creation as creation
-                                   from `tabLead` as L order by L.creation desc""",as_dict=1)
+    lead_details = frappe.db.sql(f"""select  L.name as lead_name, L.organization as organization, 
+                                    L.status as status, L.email as email_id, L.creation as creation
+                                   from `tabCRM Lead` as L order by L.creation desc""",as_dict=1)
     
     #fetch time if creation date is today else fetch date
     for lead in lead_details:
+        lead['assigned_to'] = frappe.db.get_value("ToDo", {'reference_type':'CRM Lead', 'reference_name':lead['lead_name']},'allocated_to' )
         if (lead.get('creation')).date() == date.today():
             lead['time_assigned'] = lead.get('creation').strftime('%I:%M %p')
         else:
