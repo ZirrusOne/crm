@@ -16,7 +16,7 @@ def get_columns():
         {"fieldname": "lead_name", "label": _("Lead Name"), "fieldtype": "Link","options": "Lead", "width": 220},
         {"fieldname": "organization", "label": _("Organization"), "fieldtype": "Data", "width": 200},
         {"fieldname": "status", "label": _("Status"), "fieldtype": "Link","options": "CRM Lead Status", "width": 200},
-        {"fieldname": "email_id", "label": _("Email Id"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "email", "label": _("Email Id"), "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to", "label": _("Assigned To"), "fieldtype": "Link", "options": "User", "width": 200},
         {"fieldname": "time_assigned", "label": _("Time Assigned"), "fieldtype": "Data", "width": 200}
     ]
@@ -24,15 +24,14 @@ def get_columns():
 def get_data(filters):
     #get filter condition
     conditions = get_filter_conditions(filters)
-
     #fetch lead data order by creation date
-    lead_details = frappe.db.sql(f"""select  L.name as lead_name, L.organization as organization, 
-                                    L.status as status, L.email as email_id, L.creation as creation
-                                   from `tabCRM Lead` as L order by L.creation desc""",as_dict=1)
-    
+    lead_details = frappe.db.sql(f"""SELECT l.name, l.lead_name,l.status,l.organization AS organization,
+                                            l.email, l.creation, t.allocated_to AS assigned_to
+                                     FROM `tabCRM Lead` l LEFT JOIN `tabToDo` t 
+                                     ON t.reference_type = 'CRM Lead' AND t.reference_name = l.name
+                                     WHERE l.docstatus < 2 {conditions}""", as_dict=1)
     #fetch time if creation date is today else fetch date
     for lead in lead_details:
-        lead['assigned_to'] = frappe.db.get_value("ToDo", {'reference_type':'CRM Lead', 'reference_name':lead['lead_name']},'allocated_to' )
         if (lead.get('creation')).date() == date.today():
             lead['time_assigned'] = lead.get('creation').strftime('%I:%M %p')
         else:
@@ -42,7 +41,9 @@ def get_data(filters):
 def get_filter_conditions(filters):
     conditions = ""
     if filters.from_date:
-        conditions += f" date(L.creation) >= {filters.from_date}"
+        conditions += f"and date(l.creation) >= '{filters.from_date}'"
     if filters.to_date:
-        conditions += f" and date(L.creation) <= {filters.to_date}"
+        conditions += f" and date(l.creation) <= '{filters.to_date}'"
+    if filters.assigned_to:
+        conditions += f" and t.allocated_to = '{filters.assigned_to}'"
     return conditions
