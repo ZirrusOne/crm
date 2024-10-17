@@ -6,7 +6,7 @@ import frappe
 def execute(filters=None):
 	# Define columns for the report
 	columns =[
-			{"label": "Name", "fieldname": "name", "fieldtype": "Data", "width": 150},
+			{"label": "Name", "fieldname": "lead_name", "fieldtype": "Data", "width": 150},
 			{"label": "Organization", "fieldname": "organization", "fieldtype": "Data", "width": 150},
 			{"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
 			{"label": "Email", "fieldname": "email_id", "fieldtype": "Data", "width": 200},
@@ -38,6 +38,7 @@ def get_assigned_leads(filters):
 	return frappe.db.sql(f"""
 		SELECT
 			lead.name,
+			lead.lead_name,
 			lead.organization,
 			lead.status,
 			lead.email, 
