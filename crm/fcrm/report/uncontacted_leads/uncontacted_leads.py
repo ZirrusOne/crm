@@ -9,7 +9,7 @@ def execute(filters=None):
 			{"label": "Name", "fieldname": "lead_name", "fieldtype": "Data", "width": 150},
 			{"label": "Organization", "fieldname": "organization", "fieldtype": "Data", "width": 150},
 			{"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
-			{"label": "Email", "fieldname": "email_id", "fieldtype": "Data", "width": 200},
+			{"label": "Email", "fieldname": "email", "fieldtype": "Data", "width": 200},
 			{"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Link", "options": "User", "width": 150},
 			{"label": "Last Email Communication", "fieldname": "last_email_communication", "fieldtype": "Datetime", "width": 180}
 		]
