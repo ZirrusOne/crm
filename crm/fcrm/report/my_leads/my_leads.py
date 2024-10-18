@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Korecent and contributors
+# Copyright (c) 2024, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
 import frappe
@@ -9,7 +9,7 @@ def execute(filters=None):
 			{"label": "Name", "fieldname": "lead_name", "fieldtype": "Data", "width": 150},
 			{"label": "Organization", "fieldname": "organization", "fieldtype": "Data", "width": 150},
 			{"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
-			{"label": "Email", "fieldname": "email_id", "fieldtype": "Data", "width": 200},
+			{"label": "Email", "fieldname": "email", "fieldtype": "Data", "width": 200},
 			{"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Link", "options": "User", "width": 150},
 			{"label": "Last Email Communication", "fieldname": "last_email_communication", "fieldtype": "Datetime", "width": 180}
 		]
@@ -25,15 +25,15 @@ def get_assigned_leads(filters):
 
 	# Initialize conditions for the WHERE clause
 	conditions = ""
-	
+
 	# condition for status 
 	if filters.get("status"):
 		conditions += f""" AND lead.status = '{filters.get("status")}' """
-	
+
 	# condition for organization 
 	if filters.get("organization"):
 		conditions += f""" AND lead.organization = '{filters.get("organization")}' """
-	
+
 	# Execute the SQL query to fetch the leads
 	return frappe.db.sql(f"""
 		SELECT
