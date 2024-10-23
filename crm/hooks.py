@@ -251,3 +251,9 @@ doc_events = {
 # auth_hooks = [
 #	"crm.auth.validate"
 # ]
+
+"""Apply the monkey patch to override send_notification_email. because send_notification_email is not @frappe.whitlisted  """
+from frappe.desk.doctype.notification_log import notification_log
+from crm.overrides.notification_log import send_notification_email
+
+notification_log.send_notification_email = send_notification_email
