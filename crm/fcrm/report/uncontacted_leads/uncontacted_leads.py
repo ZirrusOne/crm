@@ -20,17 +20,17 @@ def execute(filters=None):
     return columns, data
 
 def get_assigned_leads(filters):
-    # Current user or user from filter 
+    # Current user or user from filter
     allocated_to = filters.get("user") or frappe.session.user
 
     # Initialize conditions for the WHERE clause
     conditions = ""
 
-    # condition for status 
+    # condition for status
     if filters.get("status"):
         conditions += f""" AND lead.status = '{filters.get("status")}' """
 
-    # condition for organization 
+    # condition for organization
     if filters.get("organization"):
         conditions += f""" AND lead.organization = '{filters.get("organization")}' """
 
@@ -45,8 +45,8 @@ def get_assigned_leads(filters):
             lead.lead_owner,
             GROUP_CONCAT(DISTINCT ass.allocated_to) as assigned_to,
             (
-                SELECT MAX(comm.creation) 
-                FROM `tabCommunication` AS comm 
+                SELECT MAX(comm.creation)
+                FROM `tabCommunication` AS comm
                 WHERE comm.reference_doctype = 'CRM Lead' 
                 AND comm.reference_name = lead.name 
                 AND comm.communication_medium = 'Email'
