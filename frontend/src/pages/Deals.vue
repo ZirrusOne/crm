@@ -395,7 +395,7 @@ function parseRows(rows) {
           logo: getOrganization(deal.organization)?.organization_logo,
         }
       } else if (row == 'annual_revenue') {
-        _rows[row] = formatNumberIntoCurrency(
+        _rows[row] = customFormatNumberIntoCurrency(
           deal.annual_revenue,
           deal.currency,
         )
@@ -529,5 +529,12 @@ const task = ref({
 function showTask(name) {
   docname.value = name
   showTaskModal.value = true
+}
+
+function customFormatNumberIntoCurrency(value, currency) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+        currency: currency
+    }).format(value);
 }
 </script>
