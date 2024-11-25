@@ -59,6 +59,53 @@
             "
           />
         </div>
+        <div>
+          <FileUploader
+              :upload-args="{ 
+                doctype: "_note.reference_doctype", 
+                docname:  _note.reference_docname, 
+                private: true 
+              }"
+              @success="(file) => addAttachment(file)"
+            >
+            <template #default="{ openFileSelector }">
+              <Button @click="openFileSelector()">Attach File</Button>
+            </template>
+          </FileUploader>
+           </div>
+
+           <template>
+              <div>
+                <h3>Attach Files to Note</h3>
+                <input type="file" multiple @change="handleFileUpload" />
+                <button @click="uploadFiles">Upload</button>
+                <div v-if="uploadedFiles.length">
+                  <h4>Uploaded Files</h4>
+                  <ul>
+                    <li v-for="file in uploadedFiles" :key="file.name">{{ file.name }}</li>
+                  </ul>
+                </div>
+              </div>
+            </template>
+          <div class="flex flex-wrap gap-2 sm:px-10 px-4">
+            <AttachmentItem
+              v-for="a in attachments"
+              :key="a.file_url"
+              :label="a.file_name"
+            >
+              <template #suffix>
+                <FeatherIcon
+                  class="h-3.5"
+                  name="x"
+                  @click.stop="removeAttachment(a)"
+                />
+              </template>
+            </AttachmentItem>
+          </div>
+
+
+
+
       </div>
     </template>
   </Dialog>
@@ -67,9 +114,11 @@
 <script setup>
 import ArrowUpRightIcon from '@/components/Icons/ArrowUpRightIcon.vue'
 import { capture } from '@/telemetry'
-import { TextEditor, call } from 'frappe-ui'
+import { TextEditor, call, FileUploader } from 'frappe-ui'
 import { ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import AttachmentIcon from '@/components/Icons/AttachmentIcon.vue'
+import AttachmentItem from '@/components/AttachmentItem.vue'
 
 const props = defineProps({
   note: {
@@ -88,6 +137,7 @@ const props = defineProps({
 
 const show = defineModel()
 const notes = defineModel('reloadNotes')
+const attachments = defineModel('attachments')
 
 const emit = defineEmits(['after'])
 
@@ -97,10 +147,11 @@ const title = ref(null)
 const editMode = ref(false)
 let _note = ref({})
 
+
 async function updateNote() {
   if (
     props.note.title === _note.value.title &&
-    props.note.content === _note.value.content
+    props.note.content === _note.value.content 
   )
     return
 
@@ -120,6 +171,7 @@ async function updateNote() {
         doctype: 'FCRM Note',
         title: _note.value.title,
         content: _note.value.content,
+        attachments:attachments.value,
         reference_doctype: props.doctype,
         reference_docname: props.doc || '',
       },
@@ -157,4 +209,19 @@ watch(
     })
   }
 )
+
+function addAttachment(file) {
+  if (!_note.attachments) {
+    _note.attachments = [];
+  }
+  _note.attachments.push(file);
+}
+
+
+
+function removeAttachment(attachment) {
+  attachments.value = attachments.value.filter(a => a !== attachment);
+}
+
+
 </script>

@@ -58,6 +58,26 @@
           editor-class="!prose-sm max-w-none !text-sm text-gray-600 focus:outline-none"
           class="flex-1 overflow-hidden"
         />
+        
+        <div class="flex flex-wrap gap-2 sm:px-10 px-4">
+            <AttachmentItem
+              v-for="a in attachments"
+              :key="a.file_url"
+              :label="a.file_name"
+            >
+              <template #suffix>
+                <FeatherIcon
+                  class="h-3.5"
+                  name="x"
+                  @click.stop="removeAttachment(a)"
+                />
+              </template>
+            </AttachmentItem>
+          </div>
+
+
+
+
         <div class="mt-2 flex items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <UserAvatar :user="note.owner" size="xs" />
@@ -123,6 +143,7 @@ const notes = ref({})
 const loadMore = ref(1)
 const updatedPageCount = ref(20)
 const viewControls = ref(null)
+const attachments = ref([])
 
 watch(
   () => notes.value?.data?.page_length_count,

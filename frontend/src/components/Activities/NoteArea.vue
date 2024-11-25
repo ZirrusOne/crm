@@ -31,6 +31,19 @@
       editor-class="!prose-sm max-w-none !text-sm text-gray-600 focus:outline-none"
       class="flex-1 overflow-hidden"
     />
+
+
+
+    <div v-if="note.attachments && note.attachments.length">
+      <div 
+        v-for="attachment in note.attachments" :key="attachment.file_url" class="attachment-item">
+        <a :href="attachment.file_url" target="_blank">{{ attachment.file_name }}</a>
+      </div>
+    </div>
+
+
+
+
     <div class="mt-1 flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 truncate">
         <UserAvatar :user="note.owner" size="xs" />
@@ -52,14 +65,16 @@
 <script setup>
 import UserAvatar from '@/components/UserAvatar.vue'
 import { timeAgo, dateFormat, dateTooltipFormat } from '@/utils'
-import { Tooltip, Dropdown, TextEditor } from 'frappe-ui'
+import { Tooltip, Dropdown, TextEditor, FileUploader } from 'frappe-ui'
 import { usersStore } from '@/stores/users'
+import AttachmentItem from '@/components/AttachmentItem.vue'
 
 const props = defineProps({
   note: Object,
 })
 
 const notes = defineModel()
+const attachments = defineModel('attachments')
 
 const { getUser } = usersStore()
 
@@ -69,5 +84,10 @@ async function deleteNote(name) {
     name,
   })
   notes.reload()
+}
+
+
+function removeAttachment(attachment) {
+  attachments.value = attachments.value.filter((a) => a !== attachment)
 }
 </script>
