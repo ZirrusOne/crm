@@ -61,11 +61,6 @@
         </div>
         <div>
           <FileUploader
-              :upload-args="{ 
-                doctype: "_note.reference_doctype", 
-                docname:  _note.reference_docname, 
-                private: true 
-              }"
               @success="(file) => addAttachment(file)"
             >
             <template #default="{ openFileSelector }">
@@ -74,7 +69,7 @@
           </FileUploader>
            </div>
 
-           <template>
+           <!-- <template>
               <div>
                 <h3>Attach Files to Note</h3>
                 <input type="file" multiple @change="handleFileUpload" />
@@ -86,7 +81,7 @@
                   </ul>
                 </div>
               </div>
-            </template>
+            </template> -->
           <div class="flex flex-wrap gap-2 sm:px-10 px-4">
             <AttachmentItem
               v-for="a in attachments"
@@ -114,8 +109,8 @@
 <script setup>
 import ArrowUpRightIcon from '@/components/Icons/ArrowUpRightIcon.vue'
 import { capture } from '@/telemetry'
-import { TextEditor, call, FileUploader } from 'frappe-ui'
-import { ref, nextTick, watch } from 'vue'
+import { TextEditor, call, FileUploader, createResource } from 'frappe-ui'
+import { ref, nextTick, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AttachmentIcon from '@/components/Icons/AttachmentIcon.vue'
 import AttachmentItem from '@/components/AttachmentItem.vue'
@@ -137,7 +132,7 @@ const props = defineProps({
 
 const show = defineModel()
 const notes = defineModel('reloadNotes')
-const attachments = defineModel('attachments')
+const attachments = ref([]);
 
 const emit = defineEmits(['after'])
 
@@ -146,7 +141,6 @@ const router = useRouter()
 const title = ref(null)
 const editMode = ref(false)
 let _note = ref({})
-
 
 async function updateNote() {
   if (
@@ -162,6 +156,7 @@ async function updateNote() {
       fieldname: _note.value,
     })
     if (d.name) {
+      mapped_attachments_on_note(d, attachments.value)
       notes.value?.reload()
       emit('after', d)
     }
@@ -177,6 +172,7 @@ async function updateNote() {
       },
     })
     if (d.name) {
+      mapped_attachments_on_note(d, attachments.value)
       capture('note_created')
       notes.value?.reload()
       emit('after', d, true)
@@ -201,6 +197,8 @@ watch(
     if (!value) return
     editMode.value = false
     nextTick(() => {
+      get_attachments_from_note(props.note.name)
+      
       title.value.el.focus()
       _note.value = { ...props.note }
       if (_note.value.title || _note.value.content) {
@@ -215,13 +213,43 @@ function addAttachment(file) {
     _note.attachments = [];
   }
   _note.attachments.push(file);
+  attachments.value.push(file);
+
+  console.log(file)
 }
-
-
 
 function removeAttachment(attachment) {
   attachments.value = attachments.value.filter(a => a !== attachment);
 }
 
+function mapped_attachments_on_note(note, attachments){
+  createResource({
+    params: {
+      note: note,
+      attachments: attachments,
+    },
+    auto: true,
+    url: 'crm.fcrm.doctype.fcrm_note.api.add_attachments_on_note',
+    transform: (data) => {
+      console.log(data);
+    },
+  });
+}
+
+function get_attachments_from_note(note_name){
+  attachments.value = [];
+  createResource({
+    params: {
+      note_name: note_name,
+    },
+    auto: true,
+    url: 'crm.fcrm.doctype.fcrm_note.api.get_attachments_from_note',
+    transform: (data) => {
+    data.forEach((item) => {
+      attachments.value.push(item);
+    });
+    },
+  });
+}
 
 </script>
