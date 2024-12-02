@@ -143,11 +143,6 @@ const editMode = ref(false)
 let _note = ref({})
 
 async function updateNote() {
-  if (
-    props.note.title === _note.value.title &&
-    props.note.content === _note.value.content 
-  )
-    return
 
   if (_note.value.name) {
     let d = await call('frappe.client.set_value', {
