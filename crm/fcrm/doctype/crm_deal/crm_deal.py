@@ -184,6 +184,12 @@ class CRMDeal(Document):
 				'key': '_assign',
 				'width': '10rem',
 			},
+			{
+				'label': 'Last Activity',
+				'type': 'Datetime',
+				'key': 'last_activity',
+				'width': '10rem',
+			}
 		]
 		rows = [
 			"name",
@@ -201,7 +207,7 @@ class CRMDeal(Document):
 			"response_by",
 			"first_response_time",
 			"first_responded_on",
-			"modified",
+			"last_activity",
 			"_assign",
 		]
 		return {'columns': columns, 'rows': rows}

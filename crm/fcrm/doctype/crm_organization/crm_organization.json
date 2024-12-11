@@ -20,7 +20,7 @@
   "industry",
   "government_affiliation",
   "address",
-  "merge_deals_org"
+  "last_activity"
  ],
  "fields": [
   {
@@ -99,16 +99,15 @@
    "options": "CRM Organization"
   },
   {
-   "default": "1",
-   "fieldname": "merge_deals_org",
-   "fieldtype": "Check",
-   "label": "Convert all Leads from same Organization"
+   "fieldname": "last_activity",
+   "fieldtype": "Datetime",
+   "label": "Last Activity"
   }
  ],
  "image_field": "organization_logo",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-14 09:28:24.032939",
+ "modified": "2024-12-11 00:41:04.092200",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "CRM Organization",

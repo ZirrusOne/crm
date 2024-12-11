@@ -41,6 +41,7 @@
   "annual_revenue",
   "image",
   "converted",
+  "last_activity",
   "sla_tab",
   "sla",
   "sla_creation",
@@ -313,12 +314,17 @@
    "label": "Referral Source",
    "link_filters": "[[\"CRM Organization\",\"is_partner\",\"=\",1]]",
    "options": "CRM Organization"
+  },
+  {
+   "fieldname": "last_activity",
+   "fieldtype": "Datetime",
+   "label": "Last Activity"
   }
  ],
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-14 08:56:55.806003",
+ "modified": "2024-12-11 00:39:03.913907",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "CRM Lead",

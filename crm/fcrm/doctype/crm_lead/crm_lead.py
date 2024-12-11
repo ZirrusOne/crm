@@ -315,6 +315,12 @@ class CRMLead(Document):
 				'key': '_assign',
 				'width': '10rem',
 			},
+			{
+				'label': 'Last Activity',
+				'type': 'Datetime',
+				'key': 'last_activity',
+				'width': '10rem',
+			},
 		]
 		rows = [
 			"name",
@@ -329,7 +335,7 @@ class CRMLead(Document):
 			"response_by",
 			"first_response_time",
 			"first_responded_on",
-			"modified",
+			"last_activity",
 			"_assign",
 			"image",
 		]

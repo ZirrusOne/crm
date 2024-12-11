@@ -159,7 +159,19 @@ doc_events = {
 	},
 	"User": {
 		"before_validate": ["crm.api.demo.validate_user"]
-	}
+	},
+    "CRM Task": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    },
+    "Communication": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    },
+    "FCRM Note": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    }
 }
 
 # Scheduled Tasks
@@ -269,6 +281,7 @@ notification_log.send_notification_email = send_notification_email
 notification_log.get_email_header = custom_get_email_header
 
 fixtures = [ 
+    "CRM View Settings",
     "CRM Deal Status",
     "CRM Deal Status Detail",     
     {

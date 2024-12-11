@@ -35,9 +35,9 @@ class CRMOrganization(Document):
 					'width': '14rem',
 				},
 				{
-					'label': 'Last Modified',
+					'label': 'Last Activity',
 					'type': 'Datetime',
-					'key': 'modified',
+					'key': 'last_activity',
 					'width': '8rem',
 				},
 			]
@@ -49,6 +49,6 @@ class CRMOrganization(Document):
 				"industry",
 				"currency",
 				"annual_revenue",
-				"modified",
+				"last_activity",
 			]
 			return {'columns': columns, 'rows': rows}
