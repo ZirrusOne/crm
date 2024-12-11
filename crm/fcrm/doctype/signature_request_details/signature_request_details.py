@@ -3,7 +3,7 @@
 import frappe
 from frappe.model.document import Document
 from collections import namedtuple
-from frappe.utils import add_to_date, cast, nowdate, validate_email_address
+from frappe.utils import add_to_date, cast, nowdate, validate_email_address,getdate
 import frappe.utils
 from frappe.utils.safe_exec import get_safe_globals
 from frappe.utils import random_string
@@ -13,6 +13,8 @@ class SignatureRequestDetails(Document):
 		self.signature_url = random_string(20)
 		self.expiry_date = add_to_date(nowdate(), days=7)
 
+	def after_insert(self):
+		send_email(self.name)
 
 
 
@@ -37,7 +39,7 @@ def get_document(signature_url):
  
 	if sign_doc.is_signed :
 		return frappe.throw("Signature already added.")
-	if sign_doc.expiry_date < nowdate():
+	if sign_doc.expiry_date < getdate():
 		return frappe.throw("Signature Request Details expired.")
 
  
@@ -65,9 +67,12 @@ def get_signature(signature_url):
 	if sign_doc.is_signed:
 		return frappe.throw("Signature already added.")
 
-	if sign_doc.expiry_date < nowdate():
+	if sign_doc.expiry_date < getdate():
 		return frappe.throw("Signature Request Details expired.")
 
+	allowed_emails = [row.email for row in sign_doc.signature_request_email]
+	if signedBy not in allowed_emails:
+		frappe.throw(f"Email '{signedBy}' is not authorized to sign this document.")
 
 
 
@@ -82,150 +87,12 @@ def get_signature(signature_url):
 	return sign_doc
  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@frappe.whitelist(allow_guest=True)	
-def test_context():
-	todo_doc = frappe.get_doc("CRM Deal", 'CRM-DEAL-2024-00067')
-	context = get_context(todo_doc)
-
-	template = """
-			<h1>CRM Deal: {{ doc.name }}</h1>
-			<p><strong>Owner:</strong> {{  doc.owner }}</p>
-			<p><strong>Creation Date:</strong> {{  doc.creation }}</p>
-			<p><strong>Last Modified:</strong> {{  doc.modified }}</p>
-
-			<h2>General Details</h2>
-			<ul>
-				<li><strong>Status:</strong> {{ doc.status }}</li>
-				<li><strong>Deal Owner:</strong> {{  doc.deal_owner }}</li>
-				<li><strong>Organization:</strong> {{  doc.organization }}</li>
-				<li><strong>Organization Name:</strong> {{  doc.organization_name }}</li>
-				<li><strong>Website:</strong> <a href="{{  doc.website }}" target="_blank">{{  doc.website }}</a></li>
-				<li><strong>Currency:</strong> {{  doc.currency }}</li>
-			</ul>
-
-			<h2>Financial Details</h2>
-			<ul>
-				<li><strong>Probability:</strong> {{  doc.probability }}%</li>
-				<li><strong>Weighted Amount:</strong> {{  doc.weighted_amount }}</li>
-				<li><strong>Annual Revenue:</strong> {{  doc.annual_revenue }}</li>
-			</ul>
-
-			<h2>Additional Information</h2>
-			<ul>
-				<li><strong>Communication Status:</strong> {{  doc.communication_status }}</li>
-				<li><strong>Industry:</strong> {{  doc.industry }}</li>
-				<li><strong>No. of Employees:</strong> {{  doc.no_of_employees }}</li>
-				<li><strong>Territory:</strong> {{  doc.territory }}</li>
-			</ul>
-
-			<h2>Contact Information</h2>
-			<ul>
-				<li><strong>Salutation:</strong> {{  doc.salutation }}</li>
-				<li><strong>First Name:</strong> {{  doc.first_name }}</li>
-				<li><strong>Last Name:</strong> {{  doc.last_name }}</li>
-				<li><strong>Email:</strong> {{  doc.email }}</li>
-				<li><strong>Mobile Number:</strong> {{  doc.mobile_no }}</li>
-				<li><strong>Phone Number:</strong> {{  doc.phone }}</li>
-				<li><strong>Gender:</strong> {{  doc.gender }}</li>
-			</ul>
-
-			<h2>Deal Elements</h2>
-
-
-				<table class="table">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Deal Element</th>
-						<th>Created By</th>
-						<th>Creation Date</th>
-						<th>Parent Deal</th>
-					</tr>
-				</thead>
-    					{% for element in  doc.deal_elements %}
-					
-				<tbody><tr>
-						<td>{{ element.name }}</td>
-						<td>{{ element.deal_elements }}</td>
-						<td>{{ element.owner }}</td>
-						<td>{{ element.creation }}</td>
-						<td>{{ element.parent }}</td>
-					</tr></tbody>
-				<tbody>
-    			{% endfor %}
-
-			</table>
-
-			<h2>Status Change Log</h2>
-
-					
-				<table class="table">
-				<thead>
-					<tr>
-						<th>From</th>
-						<th>To</th>
-						<th>Date</th>
-						<th>Log Owner</th>
-					</tr>
-				</thead>
-    					{% for log in  doc.status_change_log %}
-
-				<tbody><tr>
-						<td>{{ log.from }}</td>
-						<td>{{ log.to }}</td>
-						<td>{{ log.from_date }}</td>
-						<td>{{ log.log_owner }}</td>
-					</tr></tbody>
-     					{% endfor %}
-
-			</table>
-
-
-
- 			"""
-
-	return frappe.render_template(template, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@frappe.whitelist()
+def send_email(docname):
+	doc = frappe.get_doc("Signature Request Details", docname)
+	subject = f"Signature Request for {doc.document_type} {doc.docname}"
+	context = {'doc':doc}
+	message = frappe.render_template("crm/templates/emails/signature_request.html",context)
+	for row in doc.signature_request_email:
+		frappe.sendmail(recipients=row.email, subject=subject, content=message)
+		frappe.db.commit()

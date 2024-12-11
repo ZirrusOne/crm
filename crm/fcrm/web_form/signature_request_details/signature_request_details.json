@@ -21,7 +21,7 @@
  "list_columns": [],
  "login_required": 0,
  "max_attachment_size": 0,
- "modified": "2024-12-08 22:00:30.017576",
+ "modified": "2024-12-09 22:33:41.273149",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "signature-request-details",
@@ -54,9 +54,10 @@
    "label": "Signed by",
    "max_length": 0,
    "max_value": 0,
+   "options": "Email",
    "precision": "",
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
@@ -69,7 +70,7 @@
    "max_value": 0,
    "precision": "",
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
@@ -94,7 +95,7 @@
    "max_value": 0,
    "precision": "",
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   }
  ]

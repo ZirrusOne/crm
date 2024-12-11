@@ -19,7 +19,6 @@
   "signature",
   "is_signed",
   "templates_tab",
-  "notification",
   "document"
  ],
  "fields": [
@@ -51,7 +50,8 @@
    "fieldname": "signed_by",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Signed by"
+   "label": "Signed by",
+   "options": "Email"
   },
   {
    "fieldname": "signed_date",
@@ -87,12 +87,6 @@
    "options": "JInja"
   },
   {
-   "fieldname": "notification",
-   "fieldtype": "Code",
-   "label": "Notification",
-   "options": "Jinja"
-  },
-  {
    "fieldname": "document_type",
    "fieldtype": "Link",
    "label": "Document type",
@@ -111,7 +105,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-08 10:49:44.857882",
+ "modified": "2024-12-09 22:34:09.518781",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "Signature Request Details",
