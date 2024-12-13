@@ -518,6 +518,9 @@ function parseRows(rows) {
           label: dateFormat(deal[row], dateTooltipFormat),
           timeAgo: __(timeAgo(deal[row])),
         }
+      } else if (row == 'last_activity') {
+        _rows[row] = deal[row] ? timeAgo(deal[row]) : ''
+
       } else if (
         ['first_response_time', 'first_responded_on', 'response_by'].includes(
           row,
