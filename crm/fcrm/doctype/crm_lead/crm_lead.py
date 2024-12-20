@@ -189,7 +189,7 @@ class CRMLead(Document):
 
 		return False
 
-	def create_deal(self, contact, organization):
+	def create_deal(self, contact, organization,partner_leads=None,contacts=None):
 		deal = frappe.new_doc("CRM Deal")
 
 		lead_deal_map = {
@@ -233,6 +233,13 @@ class CRMLead(Document):
 					"first_responded_on": self.first_responded_on
 				}
 			)
+		if partner_leads:
+			for lead in partner_leads:
+				deal.append("partner_leads",{'lead':lead})
+    
+		if contacts:
+			for contact in contacts:
+				deal.append("contacts", {'contact':contact})
 
 		deal.insert(ignore_permissions=True)
 		return deal.name
@@ -356,5 +363,43 @@ def convert_to_deal(lead, doc=None):
 	lead.save(ignore_permissions=True)
 	contact = lead.create_contact(False)
 	organization = lead.create_organization()
-	deal = lead.create_deal(contact, organization)
+ 
+	convert_all_leads =  frappe.form_dict.convert_all_leads
+ 
+	partner_leads = {'updated_leads':[],'contacts':[]}
+	if (organization) and (convert_all_leads == 1):
+		partner_leads = update_organization_leads_status(organization,convert_all_leads)
+
+	deal = lead.create_deal(contact, organization,partner_leads['updated_leads'],partner_leads['contacts'])
+
+
 	return deal
+
+
+
+
+@frappe.whitelist()
+def update_organization_leads_status(organization_name,convert_all_leads=None):
+	# Get the merge_deals_org value
+	updated_leads = []
+	contacts = []
+	if convert_all_leads:
+		frappe.db.set_value("CRM Organization",organization_name,{'merge_deals_org':1})
+		# Update the status of all leads for the given organization
+		if not frappe.db.exists("CRM Lead Status", "Contacted"):
+			status = frappe.new_doc("CRM Lead Status")
+			status.update({"status": "Contacted"})    
+			status.insert(ignore_permissions=True)
+  
+		leads = frappe.get_list("CRM Lead", filters=[["organization",'=',organization_name],['status','!=','Contacted'],['converted','!=',1]], fields=["name"])
+		for lead in leads:
+			lead_doc = frappe.get_doc("CRM Lead", lead.name)
+			frappe.db.set_value("CRM Lead", lead.name, {"converted": 1,'status':'Contacted'})
+			contact = lead_doc.create_contact(False)
+			if contact not in contacts:
+				contacts.append(contact)
+
+			updated_leads.append(lead.name)
+		frappe.db.commit()
+	return {'updated_leads':updated_leads,'contacts':contacts}
+

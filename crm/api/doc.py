@@ -288,6 +288,10 @@ def get_data(
 		default_filters = frappe.parse_json(default_filters)
 		filters.update(default_filters)
 
+
+	if doctype == 'CRM Deal' and "deal_element" in filters:
+		filters= process_deal_elements_filters(filters)
+	
 	is_default = True
 	data = []
 	_list = get_controller(doctype)
@@ -778,8 +782,28 @@ def getCounts(d, doctype):
 
 @frappe.whitelist()
 def get_reports_for_doctype(doctype):
-    reports = frappe.get_list('Report', filters={'ref_doctype': doctype}, fields=['name'])
-    return reports
+    default_report_name = frappe.db.get_value("CRM View Settings", {'dt': doctype}, ['report_name'])
+    default_report_type = None
+    if default_report_name:
+        default_report_type = frappe.db.get_value("Report", {'name': default_report_name}, ['report_type'])
+ 
+    if not default_report_name:
+        # Default reports if not found in CRM View Settings
+        if doctype == "CRM Lead":
+            default_report_name =  "My Leads"
+            default_report_type = 'Script Report'
+        elif doctype == "CRM Deal":
+            default_report_name = "My Deals"
+            default_report_type = 'Script Report'
+ 
+    reports = frappe.get_list('Report', filters={'ref_doctype': doctype}, fields=['name','report_type','json'])
+    for i in reports:
+        if i.report_type =='Report Builder':
+            i['builder_report_filter'] = convert_json_data(doctype,json.loads(i.json))
+        else:
+            i['builder_report_filter'] = {}
+    return {'reports_list':reports,'default_report':{'default_report_name':default_report_name,'default_report_type':default_report_type}}
+ 
 
 def parse_js_to_dict(js_code):
     # Extract the JSON-like part of the JavaScript code using regex
@@ -886,3 +910,15 @@ def convert_json_data(doctype, data):
     
     return converted_data
 
+
+def process_deal_elements_filters(input_dict):
+    output = []
+
+    # Process status and deal_elements
+    for key, values in input_dict.items():
+        if key == "status":
+            output.append([key, *values])
+        elif key == "deal_element":
+            output.append(["CRM Deal Elements", 'deal_elements', values[0], values[1]])
+
+    return output

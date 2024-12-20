@@ -27,7 +27,7 @@
             <div
               v-for="field in detailFields"
               :key="field.name"
-              class="flex h-7 items-center gap-2 text-base text-gray-800"
+              class="flex h-7 items-center gap-2 text-base text-gray-800 crm-field-custom"
             >
               <Tooltip :text="field.label">
                 <div class="grid w-7 place-content-center">
@@ -59,7 +59,7 @@
               <div v-else>{{ field.value }}</div>
             </div>
           </div>
-          <Fields
+          <FieldsContacts
             v-else-if="filteredSections"
             :sections="filteredSections"
             :data="_contact"
@@ -85,6 +85,7 @@
 
 <script setup>
 import Fields from '@/components/Fields.vue'
+import FieldsContacts from '@/components/FieldsContacts.vue'
 import AddressModal from '@/components/Modals/AddressModal.vue'
 import ContactIcon from '@/components/Icons/ContactIcon.vue'
 import GenderIcon from '@/components/Icons/GenderIcon.vue'
