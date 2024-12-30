@@ -90,8 +90,6 @@ def update_campaign_participants():
 
         
 
-
-
 @frappe.whitelist()
 def create_campaign(args):
     existing_campaign = frappe.db.exists("CRM Campaign", {"campaign_name": args.get('campaign_name')})
@@ -109,3 +107,66 @@ def create_campaign(args):
         campaign.insert(ignore_permissions=True)
         frappe.db.commit()
         return campaign.name
+
+@frappe.whitelist()
+def get_campaign():
+    campaigns = frappe.db.sql(f"""SELECT cc.name
+                                FROM `tabCRM Campaign` cc
+                                JOIN `tabEmail Template` et 
+                                ON cc.email_template = et.name
+                                WHERE et.reference_doctype = 'CRM Campaign'
+                                AND et.enabled = 1
+                                AND cc.status != 'Closed'
+                                AND cc.campaign_type = 'Email'""", as_dict=True)
+    return [[c['name']] for c in campaigns]
+    
+def send_email_for_campaign():
+    crm_campaigns = frappe.get_all(
+        "CRM Campaign", filters={"status": ("not in", ["On Hold", "Closed"])}
+    )
+    for camp in crm_campaigns:
+        campaign = frappe.get_doc("CRM Campaign", camp.name)
+        if getdate(campaign.scheduled_send_time) == getdate(today()) and (campaign.scheduled_send_time).hour == (today()).hour:
+            for entry in campaign.get("campaign_participants"):
+                campaign.status= "In Progress"
+                comm = send_mail(campaign, entry)
+                campaign.status= "Closed"
+                campaign.save(ignore_permissions=True)
+
+
+
+def send_mail(campaign, entry):
+    if campaign.get("email_template"):
+        email_template = frappe.get_doc("Email Template", campaign.get("email_template"))
+        context = {"doc": frappe.get_doc(entry.get('participant_source'), entry.get('reference_docname'))}
+        # send mail and link communication to document
+        comm = make(
+            doctype="CRM Campaign",
+            name= campaign.name,
+            subject=frappe.render_template(email_template.get("subject"), context),
+            content=frappe.render_template(email_template.response_, context),
+            recipients=entry.get('email'),
+            communication_medium="Email",
+            sent_or_received="Sent",
+            send_email=True,
+            email_template=email_template.name,
+        )
+        return comm
+    else:
+        return f"Please set Email template for {campaign.name}"
+
+@frappe.whitelist()
+def get_doc_view_campaign_data(doc):
+    grouped = {}
+    converted_data = { "campaign_name": doc.get('campaign_name'),
+                "campaign_type": doc.get('campaign_type'),
+                "status": doc.get('status'),
+                "scheduled_send_time": doc.get('scheduled_send_time'),
+                "email_template": doc.get('email_template')}
+    for participant in doc.get('campaign_participants'):
+        grouped.setdefault(participant['participant_source'], []).append(
+            {k: v for k, v in participant.items() if k != 'participant_source'})
+    converted_data.update({'campaign_participants': [{k : v} for k, v in grouped.items()]})
+    return converted_data
+   
+    
