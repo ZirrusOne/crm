@@ -294,8 +294,13 @@ def notify_assignment(assigned_by, allocated_to, doc_type, doc_name, action="CLO
 		title = get_title_html(title)
 		
 		#doctype name added on subject of mail 
-		subject = _("{0} assigned a new task {1} {2}({3}) to you", lang=assigned_user.language).format(
-		user_name, document_type, title, doc_name)
+		if doc_type == "CRM Task":
+			subject = _("{0} assigned a new task {1} {2}({3}) to you", lang=assigned_user.language).format(
+			user_name, document_type, title, doc_name)
+		else:
+			subject = _("{0} assigned a {1} {2}({3}) to you", lang=assigned_user.language).format(
+			user_name, document_type, title, doc_name)
+
 
 	notification_doc = {
 		"type": "Assignment",

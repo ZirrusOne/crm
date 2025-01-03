@@ -3,23 +3,27 @@ from frappe import _
 from crm.fcrm.doctype.crm_notification.crm_notification import notify_user
 
 def after_insert(doc, method):
+	print(f"after_insert todo")
 	if doc.reference_type in ["CRM Lead", "CRM Deal"] and doc.reference_name and doc.allocated_to:
 		fieldname = "lead_owner" if doc.reference_type == "CRM Lead" else "deal_owner"
 		lead_owner = frappe.db.get_value(doc.reference_type, doc.reference_name, fieldname)
 		if not lead_owner:
 			frappe.db.set_value(doc.reference_type, doc.reference_name, fieldname, doc.allocated_to)
 
-	if doc.reference_type in ["CRM Lead", "CRM Deal", "CRM Task"] and doc.reference_name and doc.allocated_to:
+	if doc.reference_type in ["CRM Lead", "CRM Deal", "CRM Task", "Contact"] and doc.reference_name and doc.allocated_to:
+		print(f"doc.reference_type {doc.reference_type}")
 		notify_assigned_user(doc)
 
 def on_update(doc, method):
-	if doc.has_value_changed("status") and doc.status == "Cancelled" and doc.reference_type in ["CRM Lead", "CRM Deal", "CRM Task"] and doc.reference_name and doc.allocated_to:
+	if doc.has_value_changed("status") and doc.status == "Cancelled" and doc.reference_type in ["CRM Lead", "CRM Deal", "CRM Task", "Contact"] and doc.reference_name and doc.allocated_to:
 		notify_assigned_user(doc, is_cancelled=True)
-
+	
 def notify_assigned_user(doc, is_cancelled=False):
 	_doc = frappe.get_doc(doc.reference_type, doc.reference_name)
 	owner = frappe.get_cached_value("User", frappe.session.user, "full_name")
 	notification_text = get_notification_text(owner, doc, _doc, is_cancelled)
+
+	print(f"_doc {_doc} owner {owner} notification_text {notification_text}")
 
 	message = _("Your assignment on {0} {1} has been removed by {2}").format(
 		doc.reference_type,
@@ -30,6 +34,7 @@ def notify_assigned_user(doc, is_cancelled=False):
 		doc.reference_type,
 		doc.reference_name
 	)
+	print(f"message {message}")
 
 	redirect_to_doctype, redirect_to_name = get_redirect_to_doc(doc)
 
@@ -51,10 +56,17 @@ def get_notification_text(owner, doc, reference_doc, is_cancelled=False):
 
 	if doctype.startswith("CRM "):
 		doctype = doctype[4:].lower()
+	else:
+		doctype = doctype.lower()
 
-	if doctype in ["lead", "deal"]:
-		name = reference_doc.lead_name or name if doctype == "lead" else reference_doc.organization or reference_doc.lead_name or name
-
+	if doctype in ["lead", "deal", "contact"]:
+		if doctype == "lead":
+			name = reference_doc.lead_name  
+		elif doctype == "deal":
+			name = reference_doc.organization or name
+		elif doctype == "contact":
+			name = reference_doc.name
+		
 		if is_cancelled:
 			return f"""
 				<div class="mb-2 leading-5 text-gray-600">
@@ -96,8 +108,9 @@ def get_notification_text(owner, doc, reference_doc, is_cancelled=False):
 		"""
 
 def get_redirect_to_doc(doc):
-	if doc.reference_type == "CRM Task":
+	if doc.reference_type in ["CRM Task"] :
 		reference_doc = frappe.get_doc(doc.reference_type, doc.reference_name)
 		return reference_doc.reference_doctype, reference_doc.reference_docname
+	# elif doc.reference_type in ["CRM Task", "Contact"] :
 
 	return doc.reference_type, doc.reference_name

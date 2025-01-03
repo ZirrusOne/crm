@@ -8,7 +8,26 @@ def validate(doc, method):
 	doc.set_primary_email()
 	doc.set_primary("mobile_no")
 	update_deals_email_mobile_no(doc)
+	update_is_personal_contact(doc)
 
+def update_is_personal_contact(doc):
+	if doc.custom_is_personal:
+		exist = frappe.db.exists('ToDo', {'reference_type': 'Contact','reference_name': doc.name,'assigned_to': frappe.session.user})
+		print(f"exist {exist}")
+		if not exist:
+			print(f" assignment")
+			frappe.get_doc({
+				'doctype': 'ToDo',
+				'description': f"Personal Contact: {doc.name}",
+				'reference_type': 'Contact',
+				'reference_name': doc.name,
+				'assigned_by':frappe.session.user,
+				'allocated_to':frappe.session.user
+			}).insert(ignore_permissions=True)
+	else:
+		todos = frappe.get_all('ToDo', filters={'reference_type': 'Contact','reference_name': doc.name})
+		for todo in todos:
+			frappe.delete_doc('ToDo', todo.name, ignore_permissions=True)
 
 def set_primary_email(doc):
 	if not doc.email_ids:
