@@ -159,7 +159,19 @@ doc_events = {
 	},
 	"User": {
 		"before_validate": ["crm.api.demo.validate_user"]
-	}
+	},
+	"CRM Task": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    },
+    "Communication": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    },
+    "FCRM Note": {
+        "after_insert": "crm.api.activities.update_last_activity",
+        "validate": "crm.api.activities.update_last_activity"
+    }
 }
 
 # Scheduled Tasks
@@ -287,7 +299,7 @@ fixtures = [
 	},
 	{
         "dt": "CRM Child Data Mapping",
-        "filters": [["name", "=", "CRM Deal"]]
+        "filters": [["name", "in", ["CRM Deal", "FCRM Note"]]]
     },
     {
         "dt": "CRM Lead Source",
