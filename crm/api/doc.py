@@ -801,14 +801,17 @@ def get_reports_for_doctype(doctype):
 	if default_report_name:
 		default_report_type = frappe.db.get_value("Report", {'name': default_report_name}, ['report_type'])
  
-	if not default_report_name:
-		# Default reports if not found in CRM View Settings
-		if doctype == "CRM Lead":
-			default_report_name =  "My Leads"
-			default_report_type = 'Script Report'
-		elif doctype == "CRM Deal":
-			default_report_name = "My Deals"
-			default_report_type = 'Script Report'
+    if not default_report_name:
+        # Default reports if not found in CRM View Settings
+        if doctype == "CRM Lead":
+            default_report_name =  "My Leads"
+            default_report_type = 'Script Report'
+        elif doctype == "CRM Deal":
+            default_report_name = "My Deals"
+            default_report_type = 'Script Report'
+        elif doctype == "CRM Campaign":
+            default_report_name = "CRM Campaign Efficiency"
+            default_report_type = 'Script Report'
  
 	reports = frappe.get_list('Report', filters={'ref_doctype': doctype}, fields=['name','report_type','json'])
 	for i in reports:
@@ -858,22 +861,22 @@ def set_default_report(doctype, report_name):
 @frappe.whitelist()
 
 def get_default_report(doctype):
-	report_name = frappe.db.get_value("CRM View Settings", {'dt': doctype}, 'report_name')
-	# Check if a report is found in CRM View Settings
-	if report_name:
-		return report_name
-	else:
-		# Default reports if not found in CRM View Settings
-		if doctype == "CRM Lead":
-			return "My Leads"
-		elif doctype == "CRM Deal":
-			return "My Deals"
-		else:
-			return None  # Or a default value for other doctypes if needed
+    report_name = frappe.db.get_value("CRM View Settings", {'dt': doctype}, 'report_name')
+    # Check if a report is found in CRM View Settings
+    if report_name:
+        return report_name
+    else:
+        # Default reports if not found in CRM View Settings
+        if doctype == "CRM Lead":
+            return "My Leads"
+        elif doctype == "CRM Deal":
+            return "My Deals"
+        elif doctype == "CRM Campaign":
+            return "CRM Campaign Efficiency"
+        else:
+            return None  # Or a default value for other doctypes if needed
+
  
-
-
-
 
 @frappe.whitelist()
 def convert_json_data(doctype, data):
