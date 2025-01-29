@@ -142,6 +142,7 @@ override_doctype_class = {
 doc_events = {
 	"Contact": {
 		"validate": ["crm.api.contact.validate"],
+		"on_update": ["crm.api.contact.on_update"],
 	},
 	"ToDo": {
 		"after_insert": ["crm.api.todo.after_insert"],
