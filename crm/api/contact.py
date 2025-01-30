@@ -1,5 +1,22 @@
 import frappe
 from frappe import _
+from crm.api.assign_to import add as assign, remove as unassign
+
+def on_update(doc, method):
+	update_crm_deal(doc)
+
+def update_crm_deal(doc):
+	# Fetch all deals linked to this contact
+	deals = frappe.get_all("CRM Deal", filters={"contact": doc.name}, fields=["name"])
+
+	for deal in deals:
+	    deal_doc = frappe.get_doc("CRM Deal", deal.name)
+	    for contact in deal_doc.contacts:
+		    contact.email = doc.email_id
+		    contact.mobile_no = doc.mobile_no
+	    deal_doc.save()
+
+	frappe.db.commit()
 
 
 def validate(doc, method):
@@ -8,7 +25,19 @@ def validate(doc, method):
 	doc.set_primary_email()
 	doc.set_primary("mobile_no")
 	update_deals_email_mobile_no(doc)
+	if doc.name and frappe.db.exists("Contact",doc.name ):
+		update_is_personal_contact(doc)
 
+def update_is_personal_contact(doc):
+	if doc.custom_is_personal:
+		assign({
+			"assign_to": [frappe.session.user],
+			"doctype": 'Contact',
+			"name": doc.name,
+			"description": doc.name,
+		}, ignore_permissions=True)
+	else:
+		unassign('Contact', doc.name, frappe.session.user)
 
 def set_primary_email(doc):
 	if not doc.email_ids:
@@ -35,7 +64,11 @@ def update_deals_email_mobile_no(doc):
 
 	for linked_deal in linked_deals:
 		deal = frappe.get_cached_doc("CRM Deal", linked_deal.parent)
-		if deal.email != doc.email_id or deal.mobile_no != doc.mobile_no:
+		deal.contact = doc.name
+		deal.save(ignore_permissions=True)
+		frappe.db.commit()
+
+		if deal.email != doc.email_id or deal.mobile_no != doc.mobile_no: 
 			deal.email = doc.email_id
 			deal.mobile_no = doc.mobile_no
 			deal.save(ignore_permissions=True)
@@ -95,7 +128,7 @@ def get_linked_deals(contact):
 				"email",
 				"mobile_no",
 				"deal_owner",
-				"modified",
+				"modified"
 			],
 		)
 		deals.append(deal.as_dict())
@@ -165,7 +198,8 @@ def search_emails(txt: str):
 	search_fields = ["full_name", "email_id", "name"]
 	if txt:
 		for f in search_fields:
-			or_filters.append([doctype, f.strip(), "like", f"%{txt}%"])
+			if f:
+				or_filters.append([doctype, f.strip(), "like", f"%{txt}%"])
 
 	results = frappe.get_list(
 		doctype,

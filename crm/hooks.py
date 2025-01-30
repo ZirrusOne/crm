@@ -142,6 +142,7 @@ override_doctype_class = {
 doc_events = {
 	"Contact": {
 		"validate": ["crm.api.contact.validate"],
+		"on_update": ["crm.api.contact.on_update"],
 	},
 	"ToDo": {
 		"after_insert": ["crm.api.todo.after_insert"],
@@ -181,7 +182,11 @@ scheduler_events = {
     "cron": {
         "*/1 * * * *": [
             "crm.api.crm_task.schedule_task_notifications"
+        ],
+        "0 */1 * * *": [
+            "crm.fcrm.doctype.crm_campaign.crm_campaign.send_email_for_campaign"
         ]
+
     }
 #	"all": [
 #		"crm.tasks.all"
@@ -286,7 +291,7 @@ fixtures = [
     {
         "dt": "Custom Field",
         "filters": [
-            ["name", "in", ["Contact-custom_business_unit", "Contact-custom_buying_role"]],
+            ["name", "in", ["Contact-custom_business_unit", "Contact-custom_buying_role", "Contact-custom_is_personal"]],
         ]
     },
 	{
@@ -311,6 +316,10 @@ fixtures = [
     },
     {
         "dt": "CRM Fields Layout",
-        "filters": [["name", "in", ["CRM Organization-Quick Entry"]]]
+        "filters": [["name", "in", ["CRM Organization-Quick Entry", "CRM Campaign-Quick Entry", "Contact-Quick Entry"]]]
+    },
+    {
+        "dt": "CRM Campaign Type",
+        "filters": [["name", "in", ["Marketing", "Email"]]]
     }
 ]
