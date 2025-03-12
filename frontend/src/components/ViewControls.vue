@@ -572,7 +572,10 @@ onMounted(async () => {
       return namesArray;
     },
   });
+  if(props.doctype == 'CRM Campaign'){
+    default_report_name.value = 'CRM Campaign Efficiency'
 
+  }
 
   createResource({
   auto: true,
