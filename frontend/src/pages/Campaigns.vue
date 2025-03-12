@@ -25,14 +25,31 @@
     v-model:updatedPageCount="updatedPageCount"
     doctype="CRM Campaign"
     :options="{
-      allowedViews: ['list'],
+      allowedViews: ['list', 'report'],
     }"
   />
 
-
+  <ReportView
+    ref="campaignsListView"
+    v-if="campigns.data && rows.length && route.params.viewType == 'report'"
+    v-model="campigns.data.page_length_count"
+    v-model:list="campigns"
+    :rows="rows"
+    :columns="campigns.data.columns"
+    :report_data="campigns"
+    :options="{
+      showTooltip: true,
+      resizeColumn: true,
+      rowCount: campigns.data.row_count,
+      totalCount: campigns.data.total_count,
+    }"
+    @loadMore="() => loadMore++"
+    @columnWidthUpdated="() => triggerResize++"
+    @updatePageCount="(count) => (updatedPageCount = count)"
+  />
   <CampaignsListView
     ref="campaignsListView"
-    v-if="campigns.data && rows.length"
+    v-else-if="campigns.data && rows.length && route.params.viewType != 'report'"
     v-model="campigns.data.page_length_count"
     v-model:list="campigns"
     :rows="rows"
@@ -85,6 +102,7 @@ import { callEnabled } from '@/composables/settings'
 import { useRoute } from 'vue-router'
 import { ref, reactive, computed, h } from 'vue'
 import CampaignsListView from '../components/ListViews/CampaignsListView.vue'
+import ReportView from '../components/ListViews/ReportView.vue'
 
 const { makeCall } = globalStore()
 
