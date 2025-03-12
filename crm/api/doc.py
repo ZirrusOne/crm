@@ -800,18 +800,18 @@ def get_reports_for_doctype(doctype):
 	default_report_type = None
 	if default_report_name:
 		default_report_type = frappe.db.get_value("Report", {'name': default_report_name}, ['report_type'])
- 
-    if not default_report_name:
+
+	if not default_report_name:
         # Default reports if not found in CRM View Settings
-        if doctype == "CRM Lead":
-            default_report_name =  "My Leads"
-            default_report_type = 'Script Report'
-        elif doctype == "CRM Deal":
-            default_report_name = "My Deals"
-            default_report_type = 'Script Report'
-        elif doctype == "CRM Campaign":
-            default_report_name = "CRM Campaign Efficiency"
-            default_report_type = 'Script Report'
+		if doctype == "CRM Lead":
+			default_report_name =  "My Leads"
+			default_report_type = 'Script Report'
+		elif doctype == "CRM Deal":
+			default_report_name = "My Deals"
+			default_report_type = 'Script Report'
+		elif doctype == "CRM Campaign":
+			default_report_name = "CRM Campaign Efficiency"
+			default_report_type = 'Script Report'
  
 	reports = frappe.get_list('Report', filters={'ref_doctype': doctype}, fields=['name','report_type','json'])
 	for i in reports:
