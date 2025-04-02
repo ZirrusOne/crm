@@ -118,11 +118,7 @@ import Link from '@/components/Controls/Link.vue'
 import { taskStatusOptions, taskPriorityOptions, getFormat } from '@/utils'
 import { usersStore } from '@/stores/users'
 import { capture } from '@/telemetry'
-<<<<<<< HEAD
 import { TextEditor, Dropdown, Tooltip, call, DateTimePicker } from 'frappe-ui'
-=======
-import { TextEditor, Dropdown, Tooltip, call,DateTimePicker } from 'frappe-ui'
->>>>>>> Scrum-9-z1
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
