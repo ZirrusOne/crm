@@ -8,21 +8,22 @@
       </Breadcrumbs>
     </template>
     <template #right-header>
-      <CustomActions v-if="customActions" :actions="customActions" />
-      <component :is="deal.data._assignedTo?.length == 1 ? 'Button' : 'div'">
-        <MultipleAvatar
-          :avatars="deal.data._assignedTo"
-          @click="showAssignmentModal = true"
-        />
-      </component>
-      <Dropdown :options="statusOptions('deal', updateField, customStatuses)" class="status-option">
+      <CustomActions
+        v-if="deal.data._customActions?.length"
+        :actions="deal.data._customActions"
+      />
+      <AssignTo
+        v-model="deal.data._assignedTo"
+        :data="deal.data"
+        doctype="CRM Deal"
+      />
+      <Dropdown
+        :options="statusOptions('deal', updateField, deal.data._customStatuses)"
+      >
         <template #default="{ open }">
-          <Button
-            :label="deal.data.status"
-            :class="getDealStatus(deal.data.status).colorClass"
-          >
+          <Button :label="deal.data.status">
             <template #prefix>
-              <IndicatorIcon />
+              <IndicatorIcon :class="getDealStatus(deal.data.status).color" />
             </template>
             <template #suffix>
               <FeatherIcon
@@ -33,35 +34,24 @@
           </Button>
         </template>
       </Dropdown>
-      <select v-model="deal.data.status_detail" class="rounded h-7 text-base px-2 border border-gray-100 bg-gray-100 hover:border-gray-200 hover:bg-gray-200 focus:border-gray-500 focus:ring-0 focus-visible:ring-2 focus-visible:ring-gray-400 text-gray-800 transition-colors w-full py-0 status-option-detail" 
-      @change.stop="updateStatusDetail($event.target.value)"
-      >
-          <option 
-          v-for="(option, index) in staus_detail_option" 
-          :key="index" 
-          :title="option.dec" 
-          :value="option.name"
-          >
-          {{ option.name }}
-          </option>
-      </select>
     </template>
-
   </LayoutHeader>
   <div v-if="deal.data" class="flex h-full overflow-hidden">
-    <Tabs v-model="tabIndex" :tabs="tabs">
-      <Activities
-        ref="activities"
-        doctype="CRM Deal"
-        :tabs="tabs"
-        v-model:reload="reload"
-        v-model:tabIndex="tabIndex"
-        v-model="deal"
-      />
+    <Tabs as="div" v-model="tabIndex" :tabs="tabs">
+      <template #tab-panel>
+        <Activities
+          ref="activities"
+          doctype="CRM Deal"
+          :tabs="tabs"
+          v-model:reload="reload"
+          v-model:tabIndex="tabIndex"
+          v-model="deal"
+        />
+      </template>
     </Tabs>
     <Resizer side="right" class="flex flex-col justify-between border-l">
       <div
-        class="flex h-10.5 cursor-copy items-center border-b px-5 py-2.5 text-lg font-medium"
+        class="flex h-10.5 cursor-copy items-center border-b px-5 py-2.5 text-lg font-medium text-ink-gray-9"
         @click="copyToClipboard(deal.data.name)"
       >
         {{ __(deal.data.name) }}
@@ -77,7 +67,7 @@
             />
           </div>
         </Tooltip>
-        <div class="flex flex-col gap-2.5 truncate">
+        <div class="flex flex-col gap-2.5 truncate text-ink-gray-9">
           <Tooltip :text="organization.data?.name || __('Set an organization')">
             <div class="truncate text-2xl font-medium">
               {{ organization.data?.name || __('Untitled') }}
@@ -113,6 +103,11 @@
                 />
               </Button>
             </Tooltip>
+            <Tooltip :text="__('Attach a file')">
+              <Button class="size-7" @click="showFilesUploader = true">
+                <AttachmentIcon class="size-4" />
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -121,209 +116,112 @@
         v-model="deal.data"
         @updateField="updateField"
       />
-
       <div
-        v-if="fieldsLayout.data"
+        v-if="sections.data"
         class="flex flex-1 flex-col justify-between overflow-hidden"
       >
-        <div class="flex flex-col overflow-y-auto">
-          <div  class="section flex flex-col p-3">
-
-            <!-- Manage custom deal elements-->
-            <Section :label="'Deal Details'">
-              <div class="px-8 pb-3 flex flex-wrap items-start text-sm text-gray-600">Deal element : </div>
-              <div class="px-8 flex flex-wrap items-start gap-3 text-sm text-gray-600">
-                <MultiSelectDealElement
-                class="flex-1"
-                v-model="dealElementNames"
-                :deal-name="deal.data.name"
-                />
-              </div>
-            </Section>
-           <div
-            v-for="(section, i) in fieldsLayout.data"
-            :key="section.label"
-            class="section flex flex-col p-3"
-            :class="{ '': i !== fieldsLayout.data.length - 1 }"
-          >
-            <SectionDeal :is-opened="section.opened" :label="section.label" v-if=" section.label  == 'Organization Details'">
-              <template #actions>
-                <div v-if="section.organization" class="pr-2">
-                 
-                </div>
-              
-              </template>
-              <SectionFieldsDetails
-                v-if="section.fields"
-                :fields="section.fields"
-                :crm_deal_probability="crm_deal_probability"
-                :crm_deal_annual_revenue="crm_deal_annual_revenue"
-                :crm_deal_weighted_amount="crm_deal_weighted_amount"
-                :isLastSection="i == fieldsLayout.data.length - 1"
-                v-model="deal.data"
-                @update="updateField"
-              />
-            </SectionDeal>
-          </div>
-          </div>
-          <div
-            v-for="(section, i) in fieldsLayout.data"
-            :key="section.label"
-            class="section flex flex-col p-3"
-            :class="{ 'border-b': i !== fieldsLayout.data.length - 1 }"
-          >
-            <Section :is-opened="section.opened" :label="section.label">
-              <template #actions>
-                <div v-if="section.contacts" class="pr-2">
-                  <Link
-                    value=""
-                    doctype="Contact"
-                    @change="(e) => addContact(e)"
-                    :onCreate="
-                      (value, close) => {
-                        _contact = {
-                          first_name: value,
-                          company_name: deal.data.organization,
-                        }
-                        showContactModal = true
-                        close()
-                      }
-                    "
-                  >
-                    <template #target="{ togglePopover }">
-                      <Button
-                        class="h-7 px-3"
-                        variant="ghost"
-                        icon="plus"
-                        @click="togglePopover()"
-                      />
-                    </template>
-                  </Link>
-                </div>
-                <Button
-                  v-else-if="
-                    ((!section.contacts && i == 1) || i == 0) && isManager()
-                  "
-                  variant="ghost"
-                  class="w-7 mr-2"
-                  @click="showSidePanelModal = true"
-                >
-                  <EditIcon class="h-4 w-4" />
-                </Button>
-              </template>
-              <SectionFieldsDeal
-                v-if="section.fields"
-                :fields="section.fields"
-                :isLastSection="i == fieldsLayout.data.length - 1"
-                v-model="deal.data"
-                @update="updateField"
-              />
-              <div v-else>
-                <div
-                  v-if="
-                    dealContacts?.loading && dealContacts?.data?.length == 0
-                  "
-                  class="flex min-h-20 flex-1 items-center justify-center gap-3 text-base text-gray-500"
-                >
-                  <LoadingIndicator class="h-4 w-4" />
-                  <span>{{ __('Loading...') }}</span>
-                </div>
-                <div
-                  v-else-if="dealContacts?.data?.length"
-                  v-for="(contact, i) in dealContacts.data"
-                  :key="contact.name"
-                >
-                  <div
-                    class="px-2 pb-2.5"
-                    :class="[i == 0 ? 'pt-5' : 'pt-2.5']"
-                  >
-                    <Section :is-opened="contact.opened">
-                      <template #header="{ opened, toggle }">
-                        <div
-                          class="flex cursor-pointer items-center justify-between gap-2 pr-1 text-base leading-5 text-gray-700"
-                        >
-                          <div
-                            class="flex h-7 items-center gap-2 truncate"
-                            @click="toggle()"
-                          >
-                            <Avatar
-                              :label="contact.full_name"
-                              :image="contact.image"
-                              size="md"
-                            />
-                            <div class="truncate">
-                              {{ contact.full_name }}
-                            </div>
-                            <Badge
-                              v-if="contact.is_primary"
-                              class="ml-2"
-                              variant="outline"
-                              :label="__('Primary')"
-                              theme="green"
-                            />
-                          </div>
-                          <div class="flex items-center">
-                            <Dropdown :options="contactOptions(contact)">
-                              <Button
-                                icon="more-horizontal"
-                                class="text-gray-600"
-                                variant="ghost"
-                              />
-                            </Dropdown>
-                            <Button
-                              variant="ghost"
-                              @click="
-                                router.push({
-                                  name: 'Contact',
-                                  params: { contactId: contact.name },
-                                })
-                              "
-                            >
-                              <ArrowUpRightIcon class="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" @click="toggle()">
-                              <FeatherIcon
-                                name="chevron-right"
-                                class="h-4 w-4 text-gray-900 transition-all duration-300 ease-in-out"
-                                :class="{ 'rotate-90': opened }"
-                              />
-                            </Button>
-                          </div>
-                        </div>
-                      </template>
+        <SidePanelLayout
+          v-model="deal.data"
+          :sections="sections.data"
+          :addContact="addContact"
+          doctype="CRM Deal"
+          v-slot="{ section }"
+          @update="updateField"
+          @reload="sections.reload"
+        >
+          <div v-if="section.name == 'contacts_section'" class="contacts-area">
+            <div
+              v-if="dealContacts?.loading && dealContacts?.data?.length == 0"
+              class="flex min-h-20 flex-1 items-center justify-center gap-3 text-base text-ink-gray-4"
+            >
+              <LoadingIndicator class="h-4 w-4" />
+              <span>{{ __('Loading...') }}</span>
+            </div>
+            <div
+              v-else-if="dealContacts?.data?.length"
+              v-for="(contact, i) in dealContacts.data"
+              :key="contact.name"
+            >
+              <div class="px-2 pb-2.5" :class="[i == 0 ? 'pt-5' : 'pt-2.5']">
+                <Section :opened="contact.opened">
+                  <template #header="{ opened, toggle }">
+                    <div
+                      class="flex cursor-pointer items-center justify-between gap-2 pr-1 text-base leading-5 text-ink-gray-7"
+                    >
                       <div
-                        class="flex flex-col gap-1.5 text-base text-gray-800"
+                        class="flex h-7 items-center gap-2 truncate"
+                        @click="toggle()"
                       >
-                        <div class="flex items-center gap-3 pb-1.5 pl-1 pt-4">
-                          <Email2Icon class="h-4 w-4" />
-                          {{ contact.email }}
+                        <Avatar
+                          :label="contact.full_name"
+                          :image="contact.image"
+                          size="md"
+                        />
+                        <div class="truncate">
+                          {{ contact.full_name }}
                         </div>
-                        <div class="flex items-center gap-3 p-1 py-1.5">
-                          <PhoneIcon class="h-4 w-4" />
-                          {{ contact.mobile_no }}
-                        </div>
-                        <div  class="flex items-center gap-3 p-1 py-1.5">
-                          <PriceTagIcon class="h-4 w-4 pricetag" />
-                          {{ contact.custom_buying_role }}
-                        </div>
+                        <Badge
+                          v-if="contact.is_primary"
+                          class="ml-2"
+                          variant="outline"
+                          :label="__('Primary')"
+                          theme="green"
+                        />
                       </div>
-                    </Section>
+                      <div class="flex items-center">
+                        <Dropdown :options="contactOptions(contact)">
+                          <Button
+                            icon="more-horizontal"
+                            class="text-ink-gray-5"
+                            variant="ghost"
+                          />
+                        </Dropdown>
+                        <Button
+                          variant="ghost"
+                          @click="
+                            router.push({
+                              name: 'Contact',
+                              params: { contactId: contact.name },
+                            })
+                          "
+                        >
+                          <ArrowUpRightIcon class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" @click="toggle()">
+                          <FeatherIcon
+                            name="chevron-right"
+                            class="h-4 w-4 text-ink-gray-9 transition-all duration-300 ease-in-out"
+                            :class="{ 'rotate-90': opened }"
+                          />
+                        </Button>
+                      </div>
+                    </div>
+                  </template>
+                  <div class="flex flex-col gap-1.5 text-base text-ink-gray-8">
+                    <div class="flex items-center gap-3 pb-1.5 pl-1 pt-4">
+                      <Email2Icon class="h-4 w-4" />
+                      {{ contact.email }}
+                    </div>
+                    <div class="flex items-center gap-3 p-1 py-1.5">
+                      <PhoneIcon class="h-4 w-4" />
+                      {{ contact.mobile_no }}
+                    </div>
                   </div>
-                  <div
-                    v-if="i != dealContacts.data.length - 1"
-                    class="mx-2 h-px border-t border-gray-200"
-                  />
-                </div>
-                <div
-                  v-else
-                  class="flex h-20 items-center justify-center text-base text-gray-600"
-                >
-                  {{ __('No contacts added') }}
-                </div>
+                </Section>
               </div>
-            </Section>
+              <div
+                v-if="i != dealContacts.data.length - 1"
+                class="mx-2 h-px border-t border-outline-gray-modals"
+              />
+            </div>
+            <div
+              v-else
+              class="flex h-20 items-center justify-center text-base text-ink-gray-5"
+            >
+              {{ __('No contacts added') }}
+            </div>
           </div>
-        </div>
+        </SidePanelLayout>
       </div>
     </Resizer>
   </div>
@@ -343,29 +241,28 @@
       afterInsert: (doc) => addContact(doc.name),
     }"
   />
-  <AssignmentModal
-    v-if="showAssignmentModal"
-    v-model="showAssignmentModal"
-    v-model:assignees="deal.data._assignedTo"
-    :doc="deal.data"
+  <FilesUploader
+    v-if="deal.data?.name"
+    v-model="showFilesUploader"
     doctype="CRM Deal"
-  />
-  <SidePanelModal
-    v-if="showSidePanelModal"
-    v-model="showSidePanelModal"
-    doctype="CRM Deal"
-    @reload="() => fieldsLayout.reload()"
+    :docname="deal.data.name"
+    @after="
+      () => {
+        activities?.all_activities?.reload()
+        changeTabTo('attachments')
+      }
+    "
   />
 </template>
 <script setup>
 import Icon from '@/components/Icon.vue'
 import Resizer from '@/components/Resizer.vue'
 import LoadingIndicator from '@/components/Icons/LoadingIndicator.vue'
-import EditIcon from '@/components/Icons/EditIcon.vue'
 import ActivityIcon from '@/components/Icons/ActivityIcon.vue'
 import EmailIcon from '@/components/Icons/EmailIcon.vue'
 import Email2Icon from '@/components/Icons/Email2Icon.vue'
 import CommentIcon from '@/components/Icons/CommentIcon.vue'
+import DetailsIcon from '@/components/Icons/DetailsIcon.vue'
 import PhoneIcon from '@/components/Icons/PhoneIcon.vue'
 import TaskIcon from '@/components/Icons/TaskIcon.vue'
 import NoteIcon from '@/components/Icons/NoteIcon.vue'
@@ -374,19 +271,15 @@ import IndicatorIcon from '@/components/Icons/IndicatorIcon.vue'
 import LinkIcon from '@/components/Icons/LinkIcon.vue'
 import ArrowUpRightIcon from '@/components/Icons/ArrowUpRightIcon.vue'
 import SuccessIcon from '@/components/Icons/SuccessIcon.vue'
+import AttachmentIcon from '@/components/Icons/AttachmentIcon.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import Activities from '@/components/Activities/Activities.vue'
 import OrganizationModal from '@/components/Modals/OrganizationModal.vue'
-import AssignmentModal from '@/components/Modals/AssignmentModal.vue'
-import MultipleAvatar from '@/components/MultipleAvatar.vue'
+import AssignTo from '@/components/AssignTo.vue'
+import FilesUploader from '@/components/FilesUploader/FilesUploader.vue'
 import ContactModal from '@/components/Modals/ContactModal.vue'
-import SidePanelModal from '@/components/Settings/SidePanelModal.vue'
-import Link from '@/components/Controls/Link.vue'
 import Section from '@/components/Section.vue'
-import SectionDeal from '@/components/SectionDeal.vue'
-import SectionFieldsDeal from '@/components/SectionFieldsDeal.vue'
-import SectionFieldsDetails from '@/components/SectionFieldsDetail.vue'
-
+import SidePanelLayout from '@/components/SidePanelLayout.vue'
 import SLASection from '@/components/SLASection.vue'
 import CustomActions from '@/components/CustomActions.vue'
 import {
@@ -396,12 +289,11 @@ import {
   setupCustomizations,
   errorMessage,
   copyToClipboard,
-  customFormatNumberIntoCurrency
 } from '@/utils'
 import { getView } from '@/utils/view'
+import { getSettings } from '@/stores/settings'
 import { globalStore } from '@/stores/global'
 import { statusesStore } from '@/stores/statuses'
-import { usersStore } from '@/stores/users'
 import { whatsappEnabled, callEnabled } from '@/composables/settings'
 import {
   createResource,
@@ -412,22 +304,16 @@ import {
   Breadcrumbs,
   call,
   usePageMeta,
-  FormControl
 } from 'frappe-ui'
 import { ref, computed, h, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActiveTabManager } from '@/composables/useActiveTabManager'
-import PriceTagIcon from '@/components/Icons/PriceTagIcon.vue'
-import MultiSelectDealElement from '../components/Controls/MultiSelectDealElement.vue'  
- 
 
+const { brand } = getSettings()
 const { $dialog, $socket, makeCall } = globalStore()
 const { statusOptions, getDealStatus } = statusesStore()
-const { isManager } = usersStore()
 const route = useRoute()
 const router = useRouter()
-const dealElements = ref([]); // Array to store deal elements
-const dealElementNames = ref([]); // Array to store only names of deal elements
 
 const props = defineProps({
   dealId: {
@@ -436,33 +322,11 @@ const props = defineProps({
   },
 })
 
-const customActions = ref([])
-const customStatuses = ref([])
-const staus_detail_option = ref([]);
-const crm_deal_annual_revenue = ref();
-const crm_deal_probability = ref();
-const crm_deal_weighted_amount = ref();
-
-
-
 const deal = createResource({
   url: 'crm.fcrm.doctype.crm_deal.api.get_deal',
   params: { name: props.dealId },
-  onSuccess: async (data) => {
-    crm_deal_probability.value = data.probability
-    crm_deal_annual_revenue.value = data.annual_revenue;
-    crm_deal_weighted_amount.value = data.weighted_amount;
-
-
-    if (data.probability || data.probability === 0) {
-      data.probability = data.probability + '%'; 
-    }
-   if (data.annual_revenue ) {
-      data.annual_revenue = customFormatNumberIntoCurrency(data.annual_revenue, data.currency); 
-    }
-    if (data.weighted_amount ) {
-      data.weighted_amount = customFormatNumberIntoCurrency(data.weighted_amount, data.currency); 
-    }
+  cache: ['deal', props.dealId],
+  onSuccess: (data) => {
     if (data.organization) {
       organization.update({
         params: { doctype: 'CRM Organization', name: data.organization },
@@ -470,7 +334,8 @@ const deal = createResource({
       organization.fetch()
     }
 
-    let obj = {
+    setupAssignees(deal)
+    setupCustomizations(deal, {
       doc: data,
       $dialog,
       $socket,
@@ -481,17 +346,10 @@ const deal = createResource({
       resource: {
         deal,
         dealContacts,
-        fieldsLayout,
+        sections,
       },
       call,
-    }
-    setupAssignees(data)
-    let customization = await setupCustomizations(data, obj)
-    dealElements.value = data.child_tables.deal_elements || [];
-    dealElementNames.value = dealElements.value.map(element => element.deal_elements);
-
-    customActions.value = customization.actions || []
-    customStatuses.value = customization.statuses || []
+    })
   },
 })
 
@@ -505,7 +363,7 @@ onMounted(() => {
     createToast({
       title: __('Customer created successfully'),
       icon: 'check',
-      iconClasses: 'text-green-600',
+      iconClasses: 'text-ink-green-3',
     })
   })
 
@@ -513,68 +371,16 @@ onMounted(() => {
     organization.data = deal.data._organizationObj
     return
   }
-  deal.fetch().then(() => {
-      getStatusDetail(deal.data.status)
-    })
-
+  deal.fetch()
 })
 
 onBeforeUnmount(() => {
   $socket.off('crm_customer_created')
 })
 
-function getStatusDetail(status) {
-  createResource({
-  auto: true,
-  params: {
-      status: status,
-    },
-  url: 'crm.api.doc.get_crm_deal_status_for_status',
-  transform: (data) => {
-    const actualData = unwrapProxy(data);
-
-    if (!actualData || !Array.isArray(actualData)) {
-    staus_detail_option.value = [];
-    }
-    // const status_array = actualData.map((item) => item.detail_name);
-    // staus_detail_option.value = status_array;
-    const status_array = actualData.map((item) => ({
-        name: item.detail_name, // Adjust if `detail_name` is not the correct key
-        dec: item.description || '' // Adjust if `detail_description` is not the correct key or needs a default
-      }));
-
-      staus_detail_option.value = status_array;
-  },
-
-});
-}
-function updateStatusDetail(value){
-updateDeal('status_detail', value, () => {
-    deal.data['status_detail'] = value
-  })
-}
-
-/**
- *  Convert proxy object into array
- * @param proxyData 
- */
- function unwrapProxy(proxyData) {
-  if (Array.isArray(proxyData)) {
-    return proxyData.map((item) => unwrapProxy(item));
-  } 
-  else if (proxyData !== null && typeof proxyData === 'object') {
-    return Object.keys(proxyData).reduce((acc, key) => {
-      acc[key] = unwrapProxy(proxyData[key]);
-      return acc;
-    }, {});
-  }
-  return proxyData;
-}
-
 const reload = ref(false)
 const showOrganizationModal = ref(false)
-const showAssignmentModal = ref(false)
-const showSidePanelModal = ref(false)
+const showFilesUploader = ref(false)
 const _organization = ref({})
 
 function updateDeal(fieldname, value, callback) {
@@ -597,7 +403,7 @@ function updateDeal(fieldname, value, callback) {
       createToast({
         title: __('Deal updated'),
         icon: 'check',
-        iconClasses: 'text-green-600',
+        iconClasses: 'text-ink-green-3',
       })
       callback?.()
     },
@@ -606,7 +412,7 @@ function updateDeal(fieldname, value, callback) {
         title: __('Error updating deal'),
         text: __(err.messages?.[0]),
         icon: 'x',
-        iconClasses: 'text-red-600',
+        iconClasses: 'text-ink-red-4',
       })
     },
   })
@@ -619,7 +425,7 @@ function validateRequired(fieldname, value) {
       title: __('Error Updating Deal'),
       text: __('{0} is a required field', [meta[fieldname].label]),
       icon: 'x',
-      iconClasses: 'text-red-600',
+      iconClasses: 'text-ink-red-4',
     })
     return true
   }
@@ -654,6 +460,7 @@ const breadcrumbs = computed(() => {
 usePageMeta(() => {
   return {
     title: organization.data?.name || deal.data?.name,
+    icon: brand.favicon,
   }
 })
 
@@ -675,6 +482,11 @@ const tabs = computed(() => {
       icon: CommentIcon,
     },
     {
+      name: 'Data',
+      label: __('Data'),
+      icon: DetailsIcon,
+    },
+    {
       name: 'Calls',
       label: __('Calls'),
       icon: PhoneIcon,
@@ -691,6 +503,11 @@ const tabs = computed(() => {
       icon: NoteIcon,
     },
     {
+      name: 'Attachments',
+      label: __('Attachments'),
+      icon: AttachmentIcon,
+    },
+    {
       name: 'WhatsApp',
       label: __('WhatsApp'),
       icon: WhatsAppIcon,
@@ -701,19 +518,19 @@ const tabs = computed(() => {
 })
 const { tabIndex } = useActiveTabManager(tabs, 'lastDealTab')
 
-const fieldsLayout = createResource({
-  url: 'crm.api.doc.get_sidebar_fields',
-  cache: ['fieldsLayout', props.dealId],
-  params: { doctype: 'CRM Deal', name: props.dealId },
+const sections = createResource({
+  url: 'crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_sidepanel_sections',
+  cache: ['sidePanelSections', 'CRM Deal'],
+  params: { doctype: 'CRM Deal' },
   auto: true,
-  transform: (data) => getParsedFields(data),
+  transform: (data) => getParsedSections(data),
 })
 
-function getParsedFields(sections) {
-  sections.forEach((section) => {
+function getParsedSections(_sections) {
+  _sections.forEach((section) => {
     if (section.name == 'contacts_section') return
-    section.fields.forEach((field) => {
-      if (field.name == 'organization') {
+    section.columns[0].fields.forEach((field) => {
+      if (field.fieldname == 'organization') {
         field.create = (value, close) => {
           _organization.value.organization_name = value
           showOrganizationModal.value = true
@@ -727,7 +544,7 @@ function getParsedFields(sections) {
       }
     })
   })
-  return sections
+  return _sections
 }
 
 const showContactModal = ref(false)
@@ -763,7 +580,7 @@ async function addContact(contact) {
     createToast({
       title: __('Contact added'),
       icon: 'check',
-      iconClasses: 'text-green-600',
+      iconClasses: 'text-ink-green-3',
     })
   }
 }
@@ -778,7 +595,7 @@ async function removeContact(contact) {
     createToast({
       title: __('Contact removed'),
       icon: 'check',
-      iconClasses: 'text-green-600',
+      iconClasses: 'text-ink-green-3',
     })
   }
 }
@@ -793,7 +610,7 @@ async function setPrimaryContact(contact) {
     createToast({
       title: __('Primary contact set'),
       icon: 'check',
-      iconClasses: 'text-green-600',
+      iconClasses: 'text-ink-green-3',
     })
   }
 }
@@ -829,49 +646,12 @@ function triggerCall() {
 }
 
 function updateField(name, value, callback) {
-  let annual_revenue_value = 0;
-  let probability_value = 0;
-
-  // Ensure 'annual_revenue' and 'probability' fields are processed correctly
-  if (name === 'annual_revenue' || name === 'probability') {
-    if (name === 'annual_revenue') {
-      // When updating 'annual_revenue', parse the value and use the current probability
-      annual_revenue_value = value ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : 0;
-      probability_value = deal.data.probability ? parseFloat(deal.data.probability.replace(/[^0-9.-]+/g, '')) : 0;
-    } else {
-      // When updating 'probability', parse the value and use the current annual revenue
-      annual_revenue_value = deal.data.annual_revenue ? parseFloat(deal.data.annual_revenue.replace(/[^0-9.-]+/g, '')) : 0;
-      probability_value = value ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : 0;
-    }
-
-    // Calculate the weighted amount
-    const weighted_amount_value = annual_revenue_value * (probability_value / 100);
-
-    // Update the weighted amount first
-    updateDeal('weighted_amount', weighted_amount_value, () => {
-      deal.data['weighted_amount'] = weighted_amount_value;
-
-      // Update the specified field
-      updateDeal(name, value, () => {
-        deal.data[name] = value;
-
-        // Execute the callback if provided
-        if (callback) callback();
-      });
-    });
-  } else {
-    // Update the specified field when not 'annual_revenue' or 'probability'
-    updateDeal(name, value, () => {
-      deal.data[name] = value;
-
-      // Execute the callback if provided
-      if (callback) callback();
-    });
-  }
-
-  // Call getStatusDetail with the new value
-  getStatusDetail(value);
+  updateDeal(name, value, () => {
+    deal.data[name] = value
+    callback?.()
+  })
 }
+
 async function deleteDeal(name) {
   await call('frappe.client.delete', {
     doctype: 'CRM Deal',
@@ -886,13 +666,3 @@ function openEmailBox() {
   activities.value.emailBox.show = true
 }
 </script>
-
-<style scoped>
-:deep(.section:has(.section-field.hidden)) {
-  display: none;
-}
-:deep(.section:has(.section-field:not(.hidden))) {
-  display: flex;
-}
-</style>
-

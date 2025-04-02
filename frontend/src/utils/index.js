@@ -1,9 +1,9 @@
 import TaskStatusIcon from '@/components/Icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/Icons/TaskPriorityIcon.vue'
-import { useDateFormat, useTimeAgo } from '@vueuse/core'
 import { usersStore } from '@/stores/users'
 import { gemoji } from 'gemoji'
-import { toast } from 'frappe-ui'
+import { useTimeAgo } from '@vueuse/core'
+import { toast, dayjsLocal, dayjs } from 'frappe-ui'
 import { h } from 'vue'
 
 export function createToast(options) {
@@ -38,16 +38,41 @@ export function formatTime(seconds) {
   return formattedTime.trim()
 }
 
-export function dateFormat(date, format) {
-  const _format = format || 'DD-MM-YYYY HH:mm:ss'
-  return useDateFormat(date, _format).value
+export function formatDate(date, format, onlyDate = false, onlyTime = false) {
+  if (!date) return ''
+  format = getFormat(date, format, onlyDate, onlyTime, false)
+  return dayjsLocal(date).format(format)
+}
+
+export function getFormat(
+  date,
+  format,
+  onlyDate = false,
+  onlyTime = false,
+  withDate = true,
+) {
+  if (!date) return ''
+  let dateFormat =
+    window.sysdefaults.date_format
+      .replace('mm', 'MM')
+      .replace('yyyy', 'YYYY')
+      .replace('dd', 'DD') || 'YYYY-MM-DD'
+  let timeFormat = window.sysdefaults.time_format || 'HH:mm:ss'
+  format = format || 'ddd, MMM D, YYYY h:mm a'
+
+  if (onlyDate) format = dateFormat
+  if (onlyTime) format = timeFormat
+  if (onlyTime && onlyDate) format = `${dateFormat} ${timeFormat}`
+
+  if (withDate) {
+    return dayjs(date).format(format)
+  }
+  return format
 }
 
 export function timeAgo(date) {
   return useTimeAgo(date).value
 }
-
-export const dateTooltipFormat = 'ddd, MMM D, YYYY h:mm A'
 
 export function taskStatusOptions(action, data) {
   return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map(
@@ -129,41 +154,41 @@ export function validateEmail(email) {
   return regExp.test(email)
 }
 
-export function setupAssignees(data) {
+export function setupAssignees(doc) {
   let { getUser } = usersStore()
-  let assignees = data._assign || []
-  data._assignedTo = assignees.map((user) => ({
+  let assignees = doc.data?._assign || []
+  doc.data._assignedTo = assignees.map((user) => ({
     name: user,
     image: getUser(user).user_image,
     label: getUser(user).full_name,
   }))
 }
 
-async function getFromScript(script, obj) {
+async function getFormScript(script, obj) {
   let scriptFn = new Function(script + '\nreturn setupForm')()
   let formScript = await scriptFn(obj)
   return formScript || {}
 }
 
-export async function setupCustomizations(data, obj) {
-  if (!data._form_script) return []
+export async function setupCustomizations(doc, obj) {
+  if (!doc.data?._form_script) return []
 
   let statuses = []
   let actions = []
-  if (Array.isArray(data._form_script)) {
-    for (let script of data._form_script) {
-      let _script = await getFromScript(script, obj)
+  if (Array.isArray(doc.data._form_script)) {
+    for (let script of doc.data._form_script) {
+      let _script = await getFormScript(script, obj)
       actions = actions.concat(_script?.actions || [])
       statuses = statuses.concat(_script?.statuses || [])
     }
   } else {
-    let _script = await getFromScript(data._form_script, obj)
+    let _script = await getFormScript(doc.data._form_script, obj)
     actions = _script?.actions || []
     statuses = _script?.statuses || []
   }
 
-  data._customStatuses = statuses
-  data._customActions = actions
+  doc.data._customStatuses = statuses
+  doc.data._customActions = actions
   return { statuses, actions }
 }
 
@@ -201,7 +226,7 @@ export function errorMessage(title, message) {
     title: title || 'Error',
     text: message,
     icon: 'x',
-    iconClasses: 'text-red-600',
+    iconClasses: 'text-ink-red-4',
   })
 }
 
@@ -222,9 +247,36 @@ export function copyToClipboard(text) {
       title: 'Copied to clipboard',
       text: text,
       icon: 'check',
-      iconClasses: 'text-green-600',
+      iconClasses: 'text-ink-green-3',
     })
   }
+}
+
+export const colors = [
+  'gray',
+  'blue',
+  'green',
+  'red',
+  'pink',
+  'orange',
+  'amber',
+  'yellow',
+  'cyan',
+  'teal',
+  'violet',
+  'purple',
+  'black',
+]
+
+export function parseColor(color) {
+  let textColor = `!text-${color}-600`
+  if (color == 'black') {
+    textColor = '!text-ink-gray-9'
+  } else if (['gray', 'green'].includes(color)) {
+    textColor = `!text-${color}-700`
+  }
+
+  return textColor
 }
 
 export function isEmoji(str) {
@@ -254,7 +306,7 @@ export function _eval(code, context = {}) {
   }
 }
 
-export function evaluate_depends_on_value(expression, doc) {
+export function evaluateDependsOnValue(expression, doc) {
   if (!expression) return true
   if (!doc) return true
 
@@ -280,4 +332,32 @@ export function evaluate_depends_on_value(expression, doc) {
   }
 
   return out
+}
+
+export function convertSize(size) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let unitIndex = 0
+  while (size > 1024) {
+    size /= 1024
+    unitIndex++
+  }
+  return `${size?.toFixed(2)} ${units[unitIndex]}`
+}
+
+export function isImage(extention) {
+  if (!extention) return false
+  return ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp'].includes(
+    extention.toLowerCase(),
+  )
+}
+
+export function getRandom(len = 4) {
+  let text = ''
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+  Array.from({ length: len }).forEach(() => {
+    text += possible.charAt(Math.floor(Math.random() * possible.length))
+  })
+
+  return text
 }

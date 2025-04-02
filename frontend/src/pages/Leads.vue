@@ -121,7 +121,7 @@
         >
           {{ getRow(itemName, titleField).label }}
         </div>
-        <div class="text-gray-500" v-else>{{ __('No Title') }}</div>
+        <div class="text-ink-gray-4" v-else>{{ __('No Title') }}</div>
       </div>
     </template>
     <template #fields="{ fieldName, itemName }">
@@ -200,7 +200,7 @@
     </template>
     <template #actions="{ itemName }">
       <div class="flex gap-2 items-center justify-between">
-        <div class="text-gray-600 flex items-center gap-1.5">
+        <div class="text-ink-gray-5 flex items-center gap-1.5">
           <EmailAtIcon class="h-4 w-4" />
           <span v-if="getRow(itemName, '_email_count').label">
             {{ getRow(itemName, '_email_count').label }}
@@ -290,7 +290,7 @@
   />
   <div v-else-if="leads.data" class="flex h-full items-center justify-center">
     <div
-      class="flex flex-col items-center gap-3 text-xl font-medium text-gray-500"
+      class="flex flex-col items-center gap-3 text-xl font-medium text-ink-gray-4"
     >
       <LeadsIcon class="h-10 w-10" />
       <span>{{ __('No {0} Found', [__('Leads')]) }}</span>
@@ -341,23 +341,20 @@ import NoteModal from '@/components/Modals/NoteModal.vue'
 import TaskModal from '@/components/Modals/TaskModal.vue'
 import QuickEntryModal from '@/components/Modals/QuickEntryModal.vue'
 import ViewControls from '@/components/ViewControls.vue'
+import { getMeta } from '@/stores/meta'
 import { globalStore } from '@/stores/global'
 import { usersStore } from '@/stores/users'
 import { statusesStore } from '@/stores/statuses'
 import { callEnabled } from '@/composables/settings'
-import {
-  dateFormat,
-  dateTooltipFormat,
-  timeAgo,
-  website,
-  formatTime,
-} from '@/utils'
+import { formatDate, timeAgo, website, formatTime } from '@/utils'
 import { Avatar, Tooltip, Dropdown } from 'frappe-ui'
 import { useRoute } from 'vue-router'
 import { ref, computed, reactive, h } from 'vue'
 import ReportView from '../components/ListViews/ReportView.vue'
 import ReportCustomView from '../components/ListViews/ReportCustomView.vue'
 
+const { getFormattedPercent, getFormattedFloat, getFormattedCurrency } =
+  getMeta('CRM Lead')
 const { makeCall } = globalStore()
 const { getUser } = usersStore()
 const { getLeadStatus } = statusesStore()
@@ -405,40 +402,41 @@ function getRow(name, field) {
 const rows = computed(() => {
   if (!leads.value?.data?.data) return []
   if (leads.value.data.view_type === 'group_by') {
-    if (!leads.value?.data.group_by_field?.name) return []
+    if (!leads.value?.data.group_by_field?.fieldname) return []
     return getGroupedByRows(
       leads.value?.data.data,
       leads.value?.data.group_by_field,
+      leads.value.data.columns,
     )
   } else if (leads.value.data.view_type === 'kanban') {
-    return getKanbanRows(leads.value.data.data)
+    return getKanbanRows(leads.value.data.data, leads.value.data.fields)
   } else {
-    return parseRows(leads.value?.data.data)
+    return parseRows(leads.value?.data.data, leads.value.data.columns)
   }
 })
 
-function getGroupedByRows(listRows, groupByField) {
+function getGroupedByRows(listRows, groupByField, columns) {
   let groupedRows = []
 
   groupByField.options?.forEach((option) => {
     let filteredRows = []
 
     if (!option) {
-      filteredRows = listRows.filter((row) => !row[groupByField.name])
+      filteredRows = listRows.filter((row) => !row[groupByField.fieldname])
     } else {
-      filteredRows = listRows.filter((row) => row[groupByField.name] == option)
+      filteredRows = listRows.filter((row) => row[groupByField.fieldname] == option)
     }
 
     let groupDetail = {
       label: groupByField.label,
       group: option || __(' '),
       collapsed: false,
-      rows: parseRows(filteredRows),
+      rows: parseRows(filteredRows, columns),
     }
-    if (groupByField.name == 'status') {
+    if (groupByField.fieldname == 'status') {
       groupDetail.icon = () =>
         h(IndicatorIcon, {
-          class: getLeadStatus(option)?.iconColorClass,
+          class: getLeadStatus(option)?.color,
         })
     }
     groupedRows.push(groupDetail)
@@ -447,21 +445,45 @@ function getGroupedByRows(listRows, groupByField) {
   return groupedRows || listRows
 }
 
-function getKanbanRows(data) {
+function getKanbanRows(data, columns) {
   let _rows = []
   data.forEach((column) => {
     column.data?.forEach((row) => {
       _rows.push(row)
     })
   })
-  return parseRows(_rows)
+  return parseRows(_rows, columns)
 }
 
-function parseRows(rows) {
+function parseRows(rows, columns = []) {
   return rows.map((lead) => {
     let _rows = {}
     leads.value?.data.rows.forEach((row) => {
       _rows[row] = lead[row]
+
+      let fieldType = columns?.find(
+        (col) => (col.key || col.value) == row,
+      )?.type
+
+      if (
+        fieldType &&
+        ['Date', 'Datetime'].includes(fieldType) &&
+        !['modified', 'creation'].includes(row)
+      ) {
+        _rows[row] = formatDate(lead[row], '', true, fieldType == 'Datetime')
+      }
+
+      if (fieldType && fieldType == 'Currency') {
+        _rows[row] = getFormattedCurrency(row, lead)
+      }
+
+      if (fieldType && fieldType == 'Float') {
+        _rows[row] = getFormattedFloat(row, lead)
+      }
+
+      if (fieldType && fieldType == 'Percent') {
+        _rows[row] = getFormattedPercent(row, lead)
+      }
 
       if (row == 'lead_name') {
         _rows[row] = {
@@ -476,7 +498,7 @@ function parseRows(rows) {
       } else if (row == 'status') {
         _rows[row] = {
           label: lead.status,
-          color: getLeadStatus(lead.status)?.iconColorClass,
+          color: getLeadStatus(lead.status)?.color,
         }
       } else if (row == 'sla_status') {
         let value = lead.sla_status
@@ -489,7 +511,7 @@ function parseRows(rows) {
               : 'orange'
         if (value == 'First Response Due') {
           value = __(timeAgo(lead.response_by))
-          tooltipText = dateFormat(lead.response_by, dateTooltipFormat)
+          tooltipText = formatDate(lead.response_by)
           if (new Date(lead.response_by) < new Date()) {
             color = 'red'
           }
@@ -516,7 +538,7 @@ function parseRows(rows) {
         }))
       } else if (['modified', 'creation'].includes(row)) {
         _rows[row] = {
-          label: dateFormat(lead[row], dateTooltipFormat),
+          label: formatDate(lead[row]),
           timeAgo: __(timeAgo(lead[row])),
         }
       } else if (
@@ -526,7 +548,7 @@ function parseRows(rows) {
       ) {
         let field = row == 'response_by' ? 'response_by' : 'first_responded_on'
         _rows[row] = {
-          label: lead[field] ? dateFormat(lead[field], dateTooltipFormat) : '',
+          label: lead[field] ? formatDate(lead[field]) : '',
           timeAgo: lead[row]
             ? row == 'first_response_time'
               ? formatTime(lead[row])

@@ -82,7 +82,7 @@
    "fetch_from": ".annual_revenue",
    "fieldname": "annual_revenue",
    "fieldtype": "Currency",
-   "label": "Amount",
+   "label": "Annual Revenue",
    "options": "currency"
   },
   {
@@ -408,7 +408,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-11-20 22:36:20.234025",
+ "modified": "2024-12-11 14:31:41.058895",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "CRM Deal",

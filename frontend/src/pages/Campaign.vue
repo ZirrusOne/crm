@@ -103,7 +103,6 @@ import { globalStore } from '@/stores/global'
 import { usersStore } from '@/stores/users'
 import { statusesStore } from '@/stores/statuses'
 import {
-  dateFormat,
   dateTooltipFormat,
   timeAgo,
   customFormatNumberIntoCurrency,
@@ -245,10 +244,6 @@ function getLeadRowObject(lead) {
       label: lead.lead_owner && getUser(lead.lead_owner).full_name,
       ...(lead.lead_owner && getUser(lead.lead_owner)),
     },
-    modified: {
-      label: dateFormat(lead.modified, dateTooltipFormat),
-      timeAgo: __(timeAgo(lead.modified)),
-    },
   }
 }
 
@@ -265,10 +260,6 @@ function getContactRowObject(contact) {
     company_name: {
       label: contact.company_name,
       logo: props.organization?.organization_logo,
-    },
-    modified: {
-      label: dateFormat(contact.modified, dateTooltipFormat),
-      timeAgo: __(timeAgo(contact.modified)),
     },
   }
 }

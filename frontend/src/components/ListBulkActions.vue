@@ -94,7 +94,7 @@ function convertToDeal(selections, unselectAll) {
               createToast({
                 title: __('Converted successfully'),
                 icon: 'check',
-                iconClasses: 'text-green-600',
+                iconClasses: 'text-ink-green-3',
               })
               list.value.reload()
               unselectAll()
@@ -129,7 +129,7 @@ function deleteValues(selections, unselectAll) {
             createToast({
               title: __('Deleted successfully'),
               icon: 'check',
-              iconClasses: 'text-green-600',
+              iconClasses: 'text-ink-green-3',
             })
             unselectAll()
             list.value.reload()
@@ -173,7 +173,7 @@ function clearAssignemnts(selections, unselectAll) {
             createToast({
               title: __('Assignment cleared successfully'),
               icon: 'check',
-              iconClasses: 'text-green-600',
+              iconClasses: 'text-ink-green-3',
             })
             reload(unselectAll)
             close()
